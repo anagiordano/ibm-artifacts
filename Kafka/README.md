@@ -82,6 +82,7 @@ docker run -d -p 2181:2181 -p 9092:9092 -p 7071:7071 --env ADVERTISED_PORT=9092 
 # create kafka topics
 docker exec -it kafka_c /bin/bash
 cd /opt/kafka*/bin
+export KAFKA_OPTS=""
 ./kafka-topics.sh --create --zookeeper localhost:2181 --replication-fact 1 --partitions 1 --topic my-topic1
 ./kafka-topics.sh --create --zookeeper localhost:2181 --replication-fact 1 --partitions 1 --topic my-topic2
 ./kafka-topics.sh --list --zookeeper localhost:2181
@@ -97,4 +98,37 @@ Lastly you can validate that the /metrics endpoint is returning metrics from Kaf
 
 ![](images/metrics-endpoint.png)
 
-#### Prometheus Server
+#### Prometheus Server and scrape jobs
+
+1- Obtain the IP address of the Kafka container
+
+```
+docker inspect kafka_c | grep IPAddress
+```
+
+2- Edit the prometheus.yml to add Kafka as a target
+
+```
+docker exec -it prometheus_c \sh
+vi /etc/prometheus/prometheus.yml
+```
+```
+# add the following lines at the bottom of the file (scrape_configs: section), 
+# where the IP should be the IP of the kafka container 
+
+  - job_name: 'kafka'                                                          
+                                                                               
+    static_configs:                                                            
+    - targets: ['172.17.0.4:7071'] 
+
+```
+3- Restart Prometheus to reload the configuration file
+
+```
+ps -ef 
+kill -HUP <prometheus PID>
+```
+
+4- You can now verify that Kafka is listed as a target job in Prometheus. On a Browser, open the http://localhost:9090/targets URL.
+
+![](images/prometheus-targets.png)
