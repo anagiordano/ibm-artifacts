@@ -100,6 +100,9 @@ Lastly you can validate that the /metrics endpoint is returning metrics from Kaf
 
 #### Prometheus Server and scrape jobs
 
+docker run -d -p 9090:9090 prom/prometheus
+
+
 1- Obtain the IP address of the Kafka container
 
 ```
