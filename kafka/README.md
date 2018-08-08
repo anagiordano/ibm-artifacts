@@ -1,5 +1,4 @@
 # Monitoring Kafka with Prometheus and Grafana
-`HSLA(540,70%,50%,0.7)`
 
 A comprehensive Kafka monitoring plan should collect metrics from the following components:
 
@@ -107,7 +106,7 @@ Prometheus uses a configuration file in YAML format to define the [scraping jobs
 
 Below, we will go thru the steps to stand-up a local Prometheus server as a Docker container and to modify the configuration file to scrape Kafka metrics. 
 
-1. Obtain the IP address of the Kafka container
+1. Create/run a docker container using Prometheus official image from DockerHub
 
 ```
 docker run -d -p 9090:9090 prom/prometheus
@@ -146,3 +145,37 @@ kill -HUP <prometheus PID>
 6. You can now verify that Kafka is listed as a target job in Prometheus. On a Browser, open the http://localhost:9090/targets URL.
 
 ![](images/prometheus-targets.png)
+
+#### <font color=blue>Grafana Server and dashboards jobs</font>
+
+We will use Grafana for visualization of the metrics scraped by Prometheus for that, we will need to:
+
+* Stand-up a local Grafana server as a Docker container
+* Configure Prometheus as a data source in Grafana
+* Import sample dashboards provided by Grafana and/or community
+* Modify the sample dashboards as we see fit
+
+Let’s get started:
+
+1. Create a docker container using Prometheus official image from DockerHub
+ 
+```
+docker run -d --name=grafana_c -p 3000:3000 grafana/grafana
+```
+
+2. On a Browser, open the http://localhost:3000 URL.
+
+* Login as **admin/admin**. You will be prompted to change the password.
+
+* Once logged in, Grafana provides visual guidance on what the next steps are: a) Add data sources b) Create first dashboard and others
+
+![](images/grafana-url.png)
+
+3. Configure Prometheus as a data source by:
+* Enter a **Name** for the data source (e.g. Prometheus)
+* Select **Prometheus** as **Type** 
+* In our simple server configuration, select **Browser** for **HTTP Access**  
+* Click **Save and Test** to validate configuration
+
+![](images/grafana-data-source.png)
+
