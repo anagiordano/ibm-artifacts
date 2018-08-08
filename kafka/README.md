@@ -1,4 +1,5 @@
 # Monitoring Kafka with Prometheus and Grafana
+`HSLA(540,70%,50%,0.7)`
 
 A comprehensive Kafka monitoring plan should collect metrics from the following components:
 
@@ -66,18 +67,18 @@ CMD ["supervisord", "-n"]
 For your convenience, the modified Dockerfile and scripts are available on this [GitHub repository](https://github.com/anagiordano/ibm-artifacts). You can run the following commands to create and run the container locally.
 
 ```shell
-# download git repo with Dockerfile and scripts
+\# download git repo with Dockerfile and scripts
 
 mkdir /tmp/monitor
 git clone https://github.com/anagiordano/ibm-artifacts.git /tmp/monitor/.
 
-# build image 
+\# build image 
 docker build --tag kafka_i /tmp/monitor/kafka/.
 
-# create container
+\# create container
 docker run -d -p 2181:2181 -p 9092:9092 -p 7071:7071 --env ADVERTISED_PORT=9092 --name kafka_c kafka_i 
 
-# create kafka topics
+\# create kafka topics
 docker exec -it kafka_c /bin/bash
 cd /opt/kafka*/bin
 export KAFKA_OPTS=""
@@ -85,11 +86,11 @@ export KAFKA_OPTS=""
 ./kafka-topics.sh --create --zookeeper localhost:2181 --replication-fact 1 --partitions 1 --topic my-topic2
 ./kafka-topics.sh --list --zookeeper localhost:2181
 
-# (optional) produce few message into topic from console
+\# (optional) produce few message into topic from console
 ./kafka-console-producer.sh --broker-list localhost:9092 --topic my-topic1
 ./kafka-console-producer.sh --broker-list localhost:9092 --topic my-topic2
 
-# exit container
+\# exit container
 exit
 ``` 
 Lastly you can validate that the /metrics endpoint is returning metrics from Kafka. On a browser, open the http://localhost:7071/metrics URL.
