@@ -65,7 +65,7 @@ CMD ["supervisord", "-n"]
 
 For your convenience, the modified Dockerfile and scripts are available on this [GitHub repository](https://github.com/anagiordano/ibm-artifacts). You can run the following commands to create and run the container locally.
 
-```
+```shell
 # download git repo with Dockerfile and scripts
 
 mkdir /tmp/monitor
