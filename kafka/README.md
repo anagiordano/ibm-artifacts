@@ -16,9 +16,9 @@ An simple way to get started would be to start with the [Grafana’s sample dash
 
 ### Configuring server and agents
 
-For convenience and easy configuration, we will use Docker images from DockerHub and make few modifications to Dockerfiles to include few additional steps to install, configure and start the servers and exporter agents.
+For convenience and easy configuration, we will use Docker images from DockerHub and make few modifications to Dockerfiles to include few additional steps to install, configure and start the servers and exporter agents locally. 
 
-#### Kafka and Zookeeper servers with JMX Exporter
+#### <font color=blue>Kafka and Zookeeper servers with JMX Exporter</font>
 
 We will start with the Dockerfile of the [Spotify kafka image](https://hub.docker.com/r/spotify/kafka/~/dockerfile/) from DockerHub as it includes Zookeeper and Kafka in a single image. The Dockerfile was modified as shown below to download, install the Prometheus JMX exporter. The exporter can be configured to scrape and expose mBeans of a JMX target. It runs as a Java Agent, exposing a HTTP server and serving metrics of the JVM. In the Dockerfile below, Kafka is started with JMX exporter agent on port 7071 and metrics will be expose in the /metrics endpoint. 
 
@@ -96,7 +96,7 @@ Lastly you can validate that the /metrics endpoint is returning metrics from Kaf
 
 ![](images/metrics-endpoint.png)
 
-#### Prometheus Server and scrape jobs
+#### <font color=blue>Prometheus Server and scrape jobs</font>
 
 Prometheus uses a configuration file in YAML format to define the [scraping jobs and their instances](https://prometheus.io/docs/concepts/jobs_instances/). You can also use the configuration file to define [recording rules](https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/) and [alerting rules](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/):
 
@@ -104,7 +104,7 @@ Prometheus uses a configuration file in YAML format to define the [scraping jobs
 
 * **Alerting rules** allow you to define alert conditions based on Prometheus expression language expressions and to send notifications about firing alerts to an external service. Alerting rules in Prometheus servers send alerts to an Alertmanager. The [Alertmanager](https://prometheus.io/docs/alerting/alertmanager/) then manages those alerts, including silencing, inhibition, aggregation and sending out notifications via methods such as email, PagerDuty and others.
 
-Below, we will show how to stand-up a Prometheus server as a Docker container and how modify the configuration file to scrape Kafka metrics. 
+Below, we will go thru the steps to stand-up a local Prometheus server as a Docker container and to modify the configuration file to scrape Kafka metrics. 
 
 1. Obtain the IP address of the Kafka container
 
@@ -112,36 +112,36 @@ Below, we will show how to stand-up a Prometheus server as a Docker container an
 docker run -d -p 9090:9090 prom/prometheus
 ```
 
-1. Obtain the IP address of the Kafka container
+2. Obtain the IP address of the Kafka container
 
 ```
 docker inspect kafka_c | grep IPAddress
 ```
 
-1. Edit the prometheus.yml to add Kafka as a target
+3. Edit the prometheus.yml to add Kafka as a target
 
 ```
 docker exec -it prometheus_c \sh
 vi /etc/prometheus/prometheus.yml
 ```
 
-```
-# add the following lines at the bottom of the file (scrape_configs: section), 
-# where the IP should be the IP of the kafka container 
+4. Locate the scrape_configs section in the properties file and add the lines below to define the Kafka job, 
+where the IP should be the IP of the kafka container
 
+``` 
   - job_name: 'kafka'                                                          
                                                                                
     static_configs:                                                            
     - targets: ['172.17.0.4:7071'] 
 
 ```
-1. Reload the configuration file
+5. Reload the configuration file
 
 ```
 ps -ef 
 kill -HUP <prometheus PID>
 ```
 
-1. You can now verify that Kafka is listed as a target job in Prometheus. On a Browser, open the http://localhost:9090/targets URL.
+6. You can now verify that Kafka is listed as a target job in Prometheus. On a Browser, open the http://localhost:9090/targets URL.
 
 ![](images/prometheus-targets.png)
