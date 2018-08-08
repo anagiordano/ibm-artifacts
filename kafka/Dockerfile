@@ -26,30 +26,15 @@ ADD supervisor/kafka.conf supervisor/zookeeper.conf /etc/supervisor/conf.d/
 # 2181 is zookeeper, 9092 is kafka
 EXPOSE 2181 9092
 
+# **********
 # start - modifications to run Prometheus JMX exporter and community Kafka exporter agents
 ENV KAFKA_OPTS "-javaagent:$KAFKA_HOME/jmx_prometheus_javaagent-0.9.jar=7071:$KAFKA_HOME/kafka-0-8-2.yml"
 
-RUN wget -q https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.9/jmx_prometheus_javaagent-0.9.jar -O /tmp/jmx_prometheus_javaagent-0.9.jar && \
-    wget -q https://raw.githubusercontent.com/prometheus/jmx_exporter/master/example_configs/kafka-0-8-2.yml -O /tmp/kafka-0-8-2.yml && \
-    mv -f /tmp/jmx_prometheus_javaagent-0.9.jar "$KAFKA_HOME"/ && \
-    mv -f /tmp/kafka-0-8-2.yml "$KAFKA_HOME"/
+RUN wget -q https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.9/jmx_prometheus_javaagent-0.9.jar -O "$KAFKA_HOME"/jmx_prometheus_javaagent-0.9.jar && \
+    wget -q https://raw.githubusercontent.com/prometheus/jmx_exporter/master/example_configs/kafka-0-8-2.yml -O "$KAFKA_HOME"/kafka-0-8-2.yml
 
 EXPOSE 7071
 # end - modifications
+# **********
 
 CMD ["supervisord", "-n"]
-For your convinience, the modification to Dockerfiles and scripts are available on this GitHub repository. You can run the following commands to create and run the container locally.
-
-# download git repo with Dockerfile and scripts
-
-mkdir /tmp/monitor
-git clone https://github.com/anagiordano/ibm-artifacts.git /tmp/monitor/.
-
-# build image 
-docker build --tag kafka /tmp/monitor/kafka/.
-
-# create container
-docker run -d -p 2181:2181 -p 9092:9092 -p 7071:7071 --env ADVERTISED_PORT=9092 --name kafka kafka 
-
-# create kafka topics
-docker exec -it kafka /bin/bash

@@ -20,11 +20,9 @@ For convenience and easy configuration, we will use Docker images from DockerHub
 
 #### Kafka and Zookeeper servers with JMX Exporter
 
-We will start with the Dockerfile of the [Spotify kafka image](https://hub.docker.com/r/spotify/kafka/~/dockerfile/) from DockerHub as it includes Zookeeper and Kafka in a single image. The Dockerfile was modified as shown below to download, install and start Kafka with JMX exporter agent (port 7071) that will expose an /metrics endpoint to be used by Prometheus to scrape metrics from container. 
+We will start with the Dockerfile of the [Spotify kafka image](https://hub.docker.com/r/spotify/kafka/~/dockerfile/) from DockerHub as it includes Zookeeper and Kafka in a single image. The Dockerfile was modified as shown below to download, install the Prometheus JMX exporter. The exporter can be configured to scrape and expose mBeans of a JMX target. It runs as a Java Agent, exposing a HTTP server and serving metrics of the JVM. In the Dockerfile below, Kafka is started with JMX exporter agent on port 7071 and metrics will be expose in the /metrics endpoint. 
 
 ```
-# Modified Kafka and Zookeeper Dockerfile from spotify/kafka
-
 FROM java:openjdk-8-jre
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -51,16 +49,16 @@ ADD supervisor/kafka.conf supervisor/zookeeper.conf /etc/supervisor/conf.d/
 # 2181 is zookeeper, 9092 is kafka
 EXPOSE 2181 9092
 
+# **********
 # start - modifications to run Prometheus JMX exporter and community Kafka exporter agents
 ENV KAFKA_OPTS "-javaagent:$KAFKA_HOME/jmx_prometheus_javaagent-0.9.jar=7071:$KAFKA_HOME/kafka-0-8-2.yml"
 
-RUN wget -q https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.9/jmx_prometheus_javaagent-0.9.jar -O /tmp/jmx_prometheus_javaagent-0.9.jar && \
-    wget -q https://raw.githubusercontent.com/prometheus/jmx_exporter/master/example_configs/kafka-0-8-2.yml -O /tmp/kafka-0-8-2.yml && \
-    mv -f /tmp/jmx_prometheus_javaagent-0.9.jar "$KAFKA_HOME"/ && \
-    mv -f /tmp/kafka-0-8-2.yml "$KAFKA_HOME"/
+RUN wget -q https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.9/jmx_prometheus_javaagent-0.9.jar -O "$KAFKA_HOME"/jmx_prometheus_javaagent-0.9.jar && \
+    wget -q https://raw.githubusercontent.com/prometheus/jmx_exporter/master/example_configs/kafka-0-8-2.yml -O "$KAFKA_HOME"/kafka-0-8-2.yml
 
 EXPOSE 7071
 # end - modifications
+# **********
 
 CMD ["supervisord", "-n"]
 ```
@@ -100,21 +98,33 @@ Lastly you can validate that the /metrics endpoint is returning metrics from Kaf
 
 #### Prometheus Server and scrape jobs
 
+Prometheus uses a configuration file in YAML format to define the [scraping jobs and their instances](https://prometheus.io/docs/concepts/jobs_instances/). You can also use the configuration file to define [recording rules](https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/) and [alerting rules](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/):
+
+* **Recording rules** allow you to precompute frequently needed or computationally expensive expressions and save their result as a new set of time series. Querying the precomputed result will then often be much faster than executing the original expression every time it is needed. This is especially useful for dashboards, which need to query the same expression repeatedly every time they refresh.
+
+* **Alerting rules** allow you to define alert conditions based on Prometheus expression language expressions and to send notifications about firing alerts to an external service. Alerting rules in Prometheus servers send alerts to an Alertmanager. The [Alertmanager](https://prometheus.io/docs/alerting/alertmanager/) then manages those alerts, including silencing, inhibition, aggregation and sending out notifications via methods such as email, PagerDuty and others.
+
+Below, we will show how to stand-up a Prometheus server as a Docker container and how modify the configuration file to scrape Kafka metrics. 
+
+1. Obtain the IP address of the Kafka container
+
+```
 docker run -d -p 9090:9090 prom/prometheus
+```
 
-
-1- Obtain the IP address of the Kafka container
+1. Obtain the IP address of the Kafka container
 
 ```
 docker inspect kafka_c | grep IPAddress
 ```
 
-2- Edit the prometheus.yml to add Kafka as a target
+1. Edit the prometheus.yml to add Kafka as a target
 
 ```
 docker exec -it prometheus_c \sh
 vi /etc/prometheus/prometheus.yml
 ```
+
 ```
 # add the following lines at the bottom of the file (scrape_configs: section), 
 # where the IP should be the IP of the kafka container 
@@ -125,13 +135,13 @@ vi /etc/prometheus/prometheus.yml
     - targets: ['172.17.0.4:7071'] 
 
 ```
-3- Restart Prometheus to reload the configuration file
+1. Reload the configuration file
 
 ```
 ps -ef 
 kill -HUP <prometheus PID>
 ```
 
-4- You can now verify that Kafka is listed as a target job in Prometheus. On a Browser, open the http://localhost:9090/targets URL.
+1. You can now verify that Kafka is listed as a target job in Prometheus. On a Browser, open the http://localhost:9090/targets URL.
 
 ![](images/prometheus-targets.png)
