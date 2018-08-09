@@ -203,7 +203,14 @@ docker run -d --name=grafana_c -p 3000:3000 grafana/grafana
 ![](images/grafana-dashboard-import.png)
 
 
-
+Graph         | Formula      | Format As
+------------- | -------------|-----
+CPU Usage  | rate(process\_cpu\_seconds\_total{job="kafka"}[1m]) | Time Series
+JVM Memory Used  | sum without(area)(jvm\_memory\_bytes\_used{job="kafka"}) | Time Series
+Time spent in GC | sum without(gc)(rate(jvm\_gc\_collection\_seconds\_sum{job="kafka"}[5m])) | Time Series
+Messages In per Topic | sum without(instance)(rate(kafka\_server\_brokertopicmetrics\_messagesin\_total{job="kafka",topic!=""}[5m])) | Time Series
+Bytes In per Topic | sum without(instance)(rate(kafka\_server\_brokertopicmetrics\_bytesin\_total{job="kafka",topic!=""}[5m])) | Time Series
+Bytes Out per Topic | sum without(instance)(rate(kafka\_server\_brokertopicmetrics\_bytesout\_total{job="kafka",topic!=""}[5m])) | Time Series
 
 
 
