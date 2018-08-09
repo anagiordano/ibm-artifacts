@@ -65,33 +65,45 @@ CMD ["supervisord", "-n"]
 
 For your convenience, the modified Dockerfile and scripts are available on this [GitHub repository](https://github.com/anagiordano/ibm-artifacts). You can run the following commands to create and run the container locally.
 
-```shell
-\# download git repo with Dockerfile and scripts
+1. download git repo with Dockerfile and scripts
 
+```
 mkdir /tmp/monitor
 git clone https://github.com/anagiordano/ibm-artifacts.git /tmp/monitor/.
+```
 
-\# build image 
+2.  Build image from Dockerfile 
+
+```
 docker build --tag kafka_i /tmp/monitor/kafka/.
+```
 
-\# create container
+3. Create/Run Docker container
+
+```
 docker run -d -p 2181:2181 -p 9092:9092 -p 7071:7071 --env ADVERTISED_PORT=9092 --name kafka_c kafka_i 
+```
 
-\# create kafka topics
+4. Create kafka topics
+
+```
 docker exec -it kafka_c /bin/bash
 cd /opt/kafka*/bin
 export KAFKA_OPTS=""
 ./kafka-topics.sh --create --zookeeper localhost:2181 --replication-fact 1 --partitions 1 --topic my-topic1
 ./kafka-topics.sh --create --zookeeper localhost:2181 --replication-fact 1 --partitions 1 --topic my-topic2
 ./kafka-topics.sh --list --zookeeper localhost:2181
+```
 
-\# (optional) produce few message into topic from console
+5. (optional) Produce few message into 
+topics from console and exit container
+
+```
 ./kafka-console-producer.sh --broker-list localhost:9092 --topic my-topic1
 ./kafka-console-producer.sh --broker-list localhost:9092 --topic my-topic2
-
-\# exit container
 exit
-``` 
+```
+
 Lastly you can validate that the /metrics endpoint is returning metrics from Kafka. On a browser, open the http://localhost:7071/metrics URL.
 
 ![](images/metrics-endpoint.png)
@@ -146,7 +158,7 @@ kill -HUP <prometheus PID>
 
 ![](images/prometheus-targets.png)
 
-#### <font color=blue>Grafana Server and dashboards jobs</font>
+#### <font color=blue>Grafana Server and dashboards</font>
 
 We will use Grafana for visualization of the metrics scraped by Prometheus for that, we will need to:
 
@@ -171,11 +183,27 @@ docker run -d --name=grafana_c -p 3000:3000 grafana/grafana
 
 ![](images/grafana-url.png)
 
-3. Configure Prometheus as a data source by:
+3. Configure Prometheus as a data source:
+
 * Enter a **Name** for the data source (e.g. Prometheus)
 * Select **Prometheus** as **Type** 
+* Enter **http://localhost:9090** for **HTTP URL**
 * In our simple server configuration, select **Browser** for **HTTP Access**  
 * Click **Save and Test** to validate configuration
-
+ 
 ![](images/grafana-data-source.png)
+
+4. Back to Home, click Dashboards -> Manage to import sample dashboards
+
+* Click the **+Import** button and paste this URL **https://grafana.com/dashboards/721**
+* Make sure to select **Prometheus** as the data source.
+
+***NOTE:*** You can also explore other sample dashboard options at https://grafana.com/dashboards. For instance, there is a [Kubernetes Kafka resource metrics](https://grafana.com/dashboards/762) sample dashboard that you could use instead as the starting point when configuring Kafka monitoring on ICP.
+
+![](images/grafana-dashboard-import.png)
+
+
+
+
+
 
