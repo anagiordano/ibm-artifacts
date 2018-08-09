@@ -12,15 +12,15 @@ Kafka Broker, Zookeeper and Java clients (producer/consumer) expose metrics via 
 
 A long list of metrics is made available by Kafka ([here](https://kafka.apache.org/documentation/#monitoring)) and Zookeeper ([here](https://zookeeper.apache.org/doc/current/zookeeperJMX.html)). The easiest way to see the available metrics is to fire up *jconsole* and point it at a running kafka client or Kafka/Prometheus server; this will allow browsing all metrics with JMX. But you are still left to figure out which ones you want to actively monitor and the ones that you want to be actively alerted. 
 
-An simple way to get started would be to start with the [Grafana’s sample dashboards](https://grafana.com/dashboards) for the Prometheus exporters you chose to use and then modify them as you learn more about the available metrics and/or your environment on ICP. The [Monitoring Kafka metrics](https://www.datadoghq.com/blog/monitoring-kafka-performance-metrics/) article from *DataDog* provides great guidance to some of the key Kafka and Prometheus metrics and why you should care about them. In the next section, we will demonstrate exactly that; we will start with sample dashboards and make few modifications to exemplify how to configure key Kafka metrics to display in the dashboard.
+An simple way to get started would be to start with the [Grafana’s sample dashboards](https://grafana.com/dashboards) for the Prometheus exporters you chose to use and then modify them as you learn more about the available metrics and/or your environment on ICP. The [Monitoring Kafka metrics](https://www.datadoghq.com/blog/monitoring-kafka-performance-metrics/) article by *DataDog* and [How to monitor Kafka](https://blog.serverdensity.com/how-to-monitor-kafka/) by *Server Density* provides  guidance on key Kafka and Prometheus metrics, reasoning to why you should care about them and suggestions on thresholds to trigger alerts. In the next section, we will demonstrate exactly that; we will start with sample dashboards and make few modifications to exemplify how to configure key Kafka metrics to display in the dashboard.
 
 ### Configuring server and agents
 
-For convenience and easy configuration, we will use Docker images from DockerHub and make few modifications to Dockerfiles to include few additional steps to install, configure and start the servers and exporter agents locally. 
+For convenience and easy configuration, we will use Docker images from DockerHub and make few modifications to DockerFiles to include few additional steps to install, configure and start the servers and exporter agents locally. 
 
 #### <font color=blue>Kafka and Zookeeper servers with JMX Exporter</font>
 
-We will start with the Dockerfile of the [Spotify kafka image](https://hub.docker.com/r/spotify/kafka/~/dockerfile/) from DockerHub as it includes Zookeeper and Kafka in a single image. The Dockerfile was modified as shown below to download, install the Prometheus JMX exporter. The exporter can be configured to scrape and expose mBeans of a JMX target. It runs as a Java Agent, exposing a HTTP server and serving metrics of the JVM. In the Dockerfile below, Kafka is started with JMX exporter agent on port 7071 and metrics will be expose in the /metrics endpoint. 
+We will start with the DockerFile of the [Spotify kafka image](https://hub.docker.com/r/spotify/kafka/~/DockerFile/) from DockerHub as it includes Zookeeper and Kafka in a single image. The DockerFile was modified as shown below to download, install the Prometheus JMX exporter. The exporter can be configured to scrape and expose mBeans of a JMX target. It runs as a Java Agent, exposing a HTTP server and serving metrics of the JVM. In the DockerFile below, Kafka is started with JMX exporter agent on port 7071 and metrics will be expose in the /metrics endpoint. 
 
 ```
 FROM java:openjdk-8-jre
@@ -63,16 +63,16 @@ EXPOSE 7071
 CMD ["supervisord", "-n"]
 ```
 
-For your convenience, the modified Dockerfile and scripts are available on this [GitHub repository](https://github.com/anagiordano/ibm-artifacts). You can run the following commands to create and run the container locally.
+For your convenience, the modified DockerFile and scripts are available on this [GitHub repository](https://github.com/anagiordano/ibm-artifacts). You can run the following commands to create and run the container locally.
 
-1. download git repo with Dockerfile and scripts
+1. download git repo with DockerFile and scripts
 
 ```
 mkdir /tmp/monitor
 git clone https://github.com/anagiordano/ibm-artifacts.git /tmp/monitor/.
 ```
 
-2.  Build image from Dockerfile 
+2.  Build image from DockerFile 
 
 ```
 docker build --tag kafka_i /tmp/monitor/kafka/.
@@ -200,17 +200,43 @@ docker run -d --name=grafana_c -p 3000:3000 grafana/grafana
 
 ***NOTE:*** You can also explore other sample dashboard options at https://grafana.com/dashboards. For instance, there is a [Kubernetes Kafka resource metrics](https://grafana.com/dashboards/762) sample dashboard that you could use instead as the starting point when configuring Kafka monitoring on ICP.
 
+
 ![](images/grafana-dashboard-import.png)
 
+![](images/grafana-dashboard-sample.png)
 
-Graph         | Formula      | Format As
-------------- | -------------|-----
-CPU Usage  | rate(process\_cpu\_seconds\_total{job="kafka"}[1m]) | Time Series
-JVM Memory Used  | sum without(area)(jvm\_memory\_bytes\_used{job="kafka"}) | Time Series
+The six graphs displayed in the dashboard are configured as follows:
+
+***NOTE:*** You might want to go back to your Kafka Docker container and push messages into the topics you have created above to see changes to the graph. Or, if you have already pushed messages, you can change the Quick Range from last *5 minutes* to something else (e.g. *last 6 hours*) on the top right hand corner of the dashboard.
+
+Graph          | Formula  | Format As  
+:------------- | :--------|:-----------
+CPU Usage      | rate(process\_cpu\_seconds\_total{job="kafka"}[1m]) | Time Series 
+JVM Memory Used  | sum without(area)(jvm\_memory\_bytes\_used{job="kafka"}) | Time Series 
 Time spent in GC | sum without(gc)(rate(jvm\_gc\_collection\_seconds\_sum{job="kafka"}[5m])) | Time Series
-Messages In per Topic | sum without(instance)(rate(kafka\_server\_brokertopicmetrics\_messagesin\_total{job="kafka",topic!=""}[5m])) | Time Series
+Messages In per Topic | sum without(instance)(rate(kafka\_server\_brokertopicmetrics\_messagesin\_total{job="kafka",topic!=""}[5m])) | Time Series 
 Bytes In per Topic | sum without(instance)(rate(kafka\_server\_brokertopicmetrics\_bytesin\_total{job="kafka",topic!=""}[5m])) | Time Series
 Bytes Out per Topic | sum without(instance)(rate(kafka\_server\_brokertopicmetrics\_bytesout\_total{job="kafka",topic!=""}[5m])) | Time Series
+
+Prometheus provides a functional expression language that lets the user select and aggregate time series data in real time. Before proceeding review the information on these pages to gain basic understanding of:
+
+* Prometheus Expression language - http://docs.grafana.org/features/datasources/prometheus/
+* Grafana Query Editor - http://docs.grafana.org/features/datasources/prometheus/
+
+As you make modifications to the dashboard it is also important to understand the data returned by the scrape jobs in the first place. For two of the metrics above, this is what the Kafka JMX exportes is returning. You can go to https://localhost:7071/metrics to search for others:
+
+* Messages in Per Topic
+
+![](images/metrics_messagesin)
+
+* Time spent in GC
+
+![](images/metrics_gc)
+
+
+ 
+
+
 
 
 
