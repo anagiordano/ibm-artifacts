@@ -223,15 +223,15 @@ Prometheus provides a functional expression language that lets the user select a
 * Prometheus Expression language - http://docs.grafana.org/features/datasources/prometheus/
 * Grafana Query Editor - http://docs.grafana.org/features/datasources/prometheus/
 
-As you make modifications to the dashboard it is also important to understand the data returned by the scrape jobs in the first place. For two of the metrics above, this is what the Kafka JMX exportes is returning. You can go to https://localhost:7071/metrics to search for others:
+As you make modifications to the dashboard it is also important to understand the data returned by the scrape jobs in the first place. For two of the metrics above, this is what the Kafka JMX exportex returns. You can go to https://localhost:7071/metrics to inspect others returned in /metrics endpoint response:
 
 * Messages in Per Topic
 
-![](images/metrics_messagesin)
+![](images/metrics_messagesin.png)
 
 * Time spent in GC
 
-![](images/metrics_gc)
+![](images/metrics_gc.png)
 
 
  
